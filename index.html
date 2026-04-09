@@ -22,17 +22,26 @@ canvas{position:fixed;top:0;left:0;z-index:0;}
 .screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .screen.active{display:flex;}
 
-/* HOME */
-#screen-home{background:radial-gradient(ellipse at 50% 30%,rgba(13,16,64,0.88) 0%,rgba(8,8,24,0.94) 100%);align-items:center;}
-.home-header{width:100%;padding:clamp(32px,8vw,60px) 24px 16px;text-align:center;flex-shrink:0;}
-.game-title{font-size:clamp(3em,14vw,5.5em);font-weight:bold;color:var(--teal);
+/* HOME — canvas shows through, bottom card floats up */
+#screen-home{background:none;overflow:hidden;justify-content:flex-end;}
+.home-top{position:fixed;top:0;left:0;right:0;text-align:center;padding:clamp(24px,6vh,48px) 20px 0;pointer-events:none;}
+.game-title{font-size:clamp(2em,10vw,3.5em);font-weight:bold;color:var(--teal);
   text-shadow:0 0 40px rgba(0,255,200,0.6),0 0 80px rgba(0,255,200,0.2);letter-spacing:3px;line-height:1;}
-.game-subtitle{font-size:clamp(0.7em,2.8vw,0.95em);color:var(--muted);margin-top:6px;letter-spacing:3px;text-transform:uppercase;}
-.stats-row{display:flex;gap:10px;padding:12px 20px;width:100%;justify-content:center;flex-shrink:0;}
-.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 16px;text-align:center;flex:1;max-width:130px;}
-.stat-box .val{font-size:1.7em;font-weight:bold;color:var(--teal);}
-.stat-box .lbl{font-size:0.6em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
-.story-section{width:100%;padding:0 20px 8px;flex-shrink:0;}
+.game-subtitle{font-size:clamp(0.62em,2.4vw,0.82em);color:var(--muted);margin-top:5px;letter-spacing:3px;text-transform:uppercase;}
+.home-card{width:100%;background:rgba(6,6,20,0.88);border-top:1px solid rgba(0,255,200,0.18);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:18px 20px max(env(safe-area-inset-bottom,24px),24px);
+  display:flex;flex-direction:column;align-items:center;gap:11px;}
+.stats-row{display:flex;gap:8px;width:100%;justify-content:center;}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 12px;text-align:center;flex:1;max-width:120px;}
+.stat-box .val{font-size:1.5em;font-weight:bold;color:var(--teal);}
+.stat-box .lbl{font-size:0.58em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.home-links{display:flex;gap:10px;width:100%;max-width:360px;}
+.link-btn{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--muted);
+  font-family:inherit;font-size:clamp(0.72em,2.8vw,0.85em);padding:10px 8px;border-radius:30px;cursor:pointer;transition:color 0.15s,border-color 0.15s;}
+.link-btn:active{color:var(--teal);border-color:rgba(0,255,200,0.4);}
+/* ARCHIVE */
+#screen-archive{background:radial-gradient(ellipse at 50% 0%,#0d1040 0%,#080818 55%);align-items:center;}
 .section-title{font-size:0.68em;color:var(--muted);text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;}
 .chapter-list{display:flex;flex-direction:column;gap:7px;}
 .chapter-item{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);
@@ -49,7 +58,6 @@ canvas{position:fixed;top:0;left:0;z-index:0;}
 .badge-new{background:rgba(255,221,0,0.12);color:var(--yellow);border:1px solid rgba(255,221,0,0.35);animation:blink 1.4s infinite;}
 .badge-locked{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.08);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.45}}
-.start-section{width:100%;padding:16px 20px 40px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
 
 /* BUTTONS */
 .btn{width:100%;max-width:360px;padding:17px 32px;font-family:inherit;font-size:clamp(1em,4vw,1.25em);
@@ -131,22 +139,33 @@ canvas{position:fixed;top:0;left:0;z-index:0;}
 
 <!-- HOME -->
 <div id="screen-home" class="screen active">
-  <div class="home-header">
-    <div class="game-title">GERM<br>BLASTER</div>
+  <div class="home-top">
+    <div class="game-title">GERM BLASTER</div>
     <div class="game-subtitle">Defenders of the Tooth Kingdom</div>
   </div>
-  <div class="stats-row">
-    <div class="stat-box"><div class="val" id="st-sessions">0</div><div class="lbl">Missions</div></div>
-    <div class="stat-box"><div class="val" id="st-germs">0</div><div class="lbl">Blasted</div></div>
-    <div class="stat-box"><div class="val" id="st-best">0</div><div class="lbl">Best</div></div>
+  <div class="home-card">
+    <div class="stats-row">
+      <div class="stat-box"><div class="val" id="st-sessions">0</div><div class="lbl">Missions</div></div>
+      <div class="stat-box"><div class="val" id="st-germs">0</div><div class="lbl">Blasted</div></div>
+      <div class="stat-box"><div class="val" id="st-best">0</div><div class="lbl">Best</div></div>
+    </div>
+    <button class="btn btn-primary" style="max-width:360px;width:100%" onclick="gotoBriefing()">START MISSION</button>
+    <div class="home-links">
+      <button class="link-btn" onclick="openArchive()">📖 Story Archive</button>
+      <button class="link-btn" onclick="doReset()">Reset</button>
+    </div>
   </div>
-  <div class="story-section">
-    <div class="section-title">Story Archive</div>
+</div>
+
+<!-- ARCHIVE -->
+<div id="screen-archive" class="screen">
+  <div class="chapter-inner">
+    <button class="back-btn" onclick="show('home')">← Back</button>
+    <div class="ch-header">
+      <div class="ch-eyebrow">Story Archive</div>
+      <div class="ch-big-title">Tooth Kingdom Chronicles</div>
+    </div>
     <div class="chapter-list" id="chapter-list"></div>
-  </div>
-  <div class="start-section">
-    <button class="btn btn-primary" onclick="gotoBriefing()">START MISSION</button>
-    <button class="btn btn-secondary" onclick="doReset()">Reset Progress</button>
   </div>
 </div>
 
@@ -455,7 +474,7 @@ function buildChapterList(){
         <div class="ch-num">${ch.eyebrow}</div>
         <div class="ch-title">${unlocked?ch.title:'???'}</div>
       </div>${badge}`;
-    if(unlocked) el.onclick = ()=>openChapter(ch.id,'home');
+    if(unlocked) el.onclick = ()=>openChapter(ch.id,'archive');
     list.appendChild(el);
   });
 }
@@ -474,7 +493,13 @@ function openChapter(id, returnTo){
 
 function chapterBack(){
   show(chBackTarget);
-  if(chBackTarget==='home') refreshHome();
+  if(chBackTarget==='home'||chBackTarget==='archive') refreshHome();
+}
+
+function openArchive(){
+  refreshHome(); // rebuilds chapter-list
+  show('archive');
+  document.getElementById('screen-archive').scrollTop=0;
 }
 
 function readNewChapter(){
@@ -807,7 +832,7 @@ function updateParts(){
   parts=parts.filter(p=>{
     p.x+=p.vx; p.y+=p.vy; p.vy+=0.04; p.life--;
     const a=p.life/p.ml;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r*a,0,Math.PI*2);
+    ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(0,p.r*a),0,Math.PI*2);
     ctx.fillStyle=rgba(p.r2,p.g2,p.b2,a);
     ctx.shadowColor=rgba(p.r2,p.g2,p.b2,0.5); ctx.shadowBlur=4; ctx.fill(); ctx.shadowBlur=0;
     return p.life>0;
