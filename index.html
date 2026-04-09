@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080818">
+<title>Germ Blaster</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --teal:#00ffcc;--blue:#0088ff;--yellow:#ffdd00;
+  --bg:#080818;--text:#e0e8ff;--muted:#6677aa;
+  --card:rgba(255,255,255,0.05);--border:rgba(0,255,200,0.15);
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'Courier New',Courier,monospace;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;}
+canvas{position:fixed;top:0;left:0;z-index:0;}
+.screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.screen.active{display:flex;}
+
+/* HOME */
+#screen-home{background:radial-gradient(ellipse at 50% 30%,rgba(13,16,64,0.88) 0%,rgba(8,8,24,0.94) 100%);align-items:center;}
+.home-header{width:100%;padding:clamp(32px,8vw,60px) 24px 16px;text-align:center;flex-shrink:0;}
+.game-title{font-size:clamp(3em,14vw,5.5em);font-weight:bold;color:var(--teal);
+  text-shadow:0 0 40px rgba(0,255,200,0.6),0 0 80px rgba(0,255,200,0.2);letter-spacing:3px;line-height:1;}
+.game-subtitle{font-size:clamp(0.7em,2.8vw,0.95em);color:var(--muted);margin-top:6px;letter-spacing:3px;text-transform:uppercase;}
+.stats-row{display:flex;gap:10px;padding:12px 20px;width:100%;justify-content:center;flex-shrink:0;}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 16px;text-align:center;flex:1;max-width:130px;}
+.stat-box .val{font-size:1.7em;font-weight:bold;color:var(--teal);}
+.stat-box .lbl{font-size:0.6em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.story-section{width:100%;padding:0 20px 8px;flex-shrink:0;}
+.section-title{font-size:0.68em;color:var(--muted);text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;}
+.chapter-list{display:flex;flex-direction:column;gap:7px;}
+.chapter-item{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:10px 13px;transition:background 0.15s;}
+.chapter-item.unlocked{border-color:rgba(0,255,200,0.25);cursor:pointer;}
+.chapter-item.unlocked:active{background:rgba(0,255,200,0.08);}
+.chapter-item.locked{opacity:0.45;}
+.ch-icon{font-size:1.4em;width:28px;text-align:center;flex-shrink:0;}
+.ch-info{flex:1;}
+.ch-num{font-size:0.62em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.ch-title{font-size:0.88em;color:var(--text);margin-top:2px;}
+.ch-badge{font-size:0.62em;padding:3px 8px;border-radius:20px;flex-shrink:0;}
+.badge-read{background:rgba(0,255,200,0.1);color:var(--teal);border:1px solid rgba(0,255,200,0.25);}
+.badge-new{background:rgba(255,221,0,0.12);color:var(--yellow);border:1px solid rgba(255,221,0,0.35);animation:blink 1.4s infinite;}
+.badge-locked{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.08);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.45}}
+.start-section{width:100%;padding:16px 20px 40px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
+
+/* BUTTONS */
+.btn{width:100%;max-width:360px;padding:17px 32px;font-family:inherit;font-size:clamp(1em,4vw,1.25em);
+  font-weight:bold;border:none;border-radius:60px;cursor:pointer;letter-spacing:1px;transition:transform 0.1s;}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:linear-gradient(135deg,#00ffcc,#0088ff);color:#000;box-shadow:0 0 40px rgba(0,255,200,0.35);animation:glow 2.5s ease-in-out infinite;}
+.btn-secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.1);font-size:clamp(0.8em,3vw,0.95em);}
+@keyframes glow{0%,100%{box-shadow:0 0 40px rgba(0,255,200,0.35)}50%{box-shadow:0 0 60px rgba(0,255,200,0.65)}}
+
+/* BRIEFING */
+#screen-briefing{background:radial-gradient(ellipse at 50% 20%,rgba(13,16,64,0.9) 0%,rgba(8,8,24,0.95) 100%);
+  justify-content:center;align-items:center;}
+.briefing-inner{width:100%;max-width:480px;padding:36px 26px;display:flex;flex-direction:column;gap:18px;}
+.mission-tag{font-size:0.68em;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.mission-num{color:var(--teal);}
+.mission-name{font-size:clamp(1.7em,7vw,2.4em);font-weight:bold;color:var(--text);line-height:1.2;}
+.enemy-row{display:flex;gap:9px;}
+.enemy-tag{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 13px;font-size:0.74em;flex:1;}
+.enemy-tag .lbl{color:var(--muted);font-size:0.85em;letter-spacing:1px;text-transform:uppercase;}
+.enemy-tag .val{color:var(--yellow);margin-top:2px;}
+.briefing-text{font-size:clamp(0.88em,3.4vw,1.02em);line-height:1.75;color:#c0cce8;
+  border-left:2px solid rgba(0,255,200,0.28);padding-left:15px;}
+.diff-row{display:flex;gap:5px;align-items:center;}
+.diff-row .lbl{font-size:0.68em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;min-width:68px;}
+.dpip{width:18px;height:7px;border-radius:4px;background:rgba(255,255,255,0.08);}
+.dpip.on{background:var(--teal);box-shadow:0 0 7px rgba(0,255,200,0.5);}
+
+/* GAME HUD */
+#screen-game{background:transparent;pointer-events:none;}
+.hud-top{width:100%;padding:max(env(safe-area-inset-top,12px),12px) 14px 0;
+  display:flex;justify-content:space-between;align-items:flex-start;}
+.hud-box{background:rgba(8,8,24,0.72);border:1px solid rgba(0,255,200,0.18);border-radius:10px;padding:5px 13px;backdrop-filter:blur(8px);}
+#hud-timer{font-size:clamp(1.9em,8vw,2.7em);font-weight:bold;color:var(--teal);
+  text-shadow:0 0 18px rgba(0,255,200,0.55);letter-spacing:2px;}
+#hud-score .lbl{font-size:0.58em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+#hud-score .val{font-size:1.5em;font-weight:bold;color:var(--yellow);text-align:right;}
+#hud-phase{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+  font-size:0.73em;letter-spacing:3px;text-transform:uppercase;text-shadow:0 0 10px currentColor;
+  pointer-events:none;white-space:nowrap;}
+#hud-progress{position:fixed;bottom:0;left:0;right:0;height:5px;background:rgba(0,0,0,0.5);pointer-events:none;}
+#hud-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,#00ffcc,#0088ff,#ff6600,#ff0088);
+  box-shadow:0 -1px 8px rgba(0,255,200,0.45);transition:width 0.5s linear;}
+
+/* RESULTS */
+#screen-results{background:radial-gradient(ellipse at 50% 20%,rgba(0,26,16,0.92) 0%,rgba(8,8,24,0.96) 100%);
+  justify-content:center;align-items:center;}
+.results-inner{width:100%;max-width:460px;padding:36px 26px;display:flex;flex-direction:column;gap:18px;align-items:center;}
+.victory-title{font-size:clamp(2em,9vw,2.9em);font-weight:bold;color:#00ff88;
+  text-shadow:0 0 28px rgba(0,255,136,0.55);text-align:center;line-height:1.1;}
+.score-block{text-align:center;}
+.score-block .big{font-size:clamp(2.4em,12vw,4em);font-weight:bold;color:var(--yellow);}
+.score-block .lbl{font-size:0.72em;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.fact-box{background:rgba(0,255,200,0.04);border:1px solid rgba(0,255,200,0.18);border-radius:12px;
+  padding:14px 18px;font-size:clamp(0.82em,3.2vw,0.98em);color:#c0cce8;line-height:1.65;text-align:center;width:100%;}
+.fact-box .fact-lbl{font-size:0.68em;color:var(--teal);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+#unlock-box{display:none;background:linear-gradient(135deg,rgba(0,255,200,0.08),rgba(0,136,255,0.08));
+  border:1px solid rgba(0,255,200,0.35);border-radius:12px;padding:15px 18px;width:100%;cursor:pointer;transition:background 0.2s;}
+#unlock-box.show{display:block;}
+#unlock-box:active{background:rgba(0,255,200,0.13);}
+.unlock-label{font-size:0.63em;color:var(--yellow);letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
+.unlock-name{font-size:1.08em;font-weight:bold;color:var(--text);}
+.unlock-hint{font-size:0.72em;color:var(--teal);margin-top:3px;}
+
+/* CHAPTER */
+#screen-chapter{background:radial-gradient(ellipse at 50% 0%,#0d1040 0%,#080818 55%);align-items:center;}
+.chapter-inner{width:100%;max-width:640px;padding:36px 26px 80px;display:flex;flex-direction:column;gap:22px;}
+.back-btn{background:none;border:none;color:var(--teal);font-family:inherit;font-size:0.88em;
+  cursor:pointer;padding:0;letter-spacing:1px;text-align:left;}
+.ch-header{border-bottom:1px solid var(--border);padding-bottom:18px;}
+.ch-eyebrow{font-size:0.68em;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:7px;}
+.ch-big-title{font-size:clamp(1.55em,7vw,2.4em);font-weight:bold;color:var(--text);line-height:1.2;}
+.ch-body{font-size:clamp(0.9em,3.4vw,1.04em);line-height:1.92;color:#c0cce8;white-space:pre-wrap;}
+.ch-body b{color:var(--text);}
+.ch-body i{color:var(--teal);}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="home-header">
+    <div class="game-title">GERM<br>BLASTER</div>
+    <div class="game-subtitle">Defenders of the Tooth Kingdom</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="val" id="st-sessions">0</div><div class="lbl">Missions</div></div>
+    <div class="stat-box"><div class="val" id="st-germs">0</div><div class="lbl">Blasted</div></div>
+    <div class="stat-box"><div class="val" id="st-best">0</div><div class="lbl">Best</div></div>
+  </div>
+  <div class="story-section">
+    <div class="section-title">Story Archive</div>
+    <div class="chapter-list" id="chapter-list"></div>
+  </div>
+  <div class="start-section">
+    <button class="btn btn-primary" onclick="gotoBriefing()">START MISSION</button>
+    <button class="btn btn-secondary" onclick="doReset()">Reset Progress</button>
+  </div>
+</div>
+
+<!-- BRIEFING -->
+<div id="screen-briefing" class="screen">
+  <div class="briefing-inner">
+    <div>
+      <div class="mission-tag"><span class="mission-num" id="br-num">Mission #1</span> &nbsp;·&nbsp; Tooth Kingdom Defense Force</div>
+      <div class="mission-name" id="br-name">First Contact</div>
+    </div>
+    <div class="enemy-row">
+      <div class="enemy-tag"><div class="lbl">Enemy Squad</div><div class="val" id="br-squad">—</div></div>
+      <div class="enemy-tag"><div class="lbl">Boss</div><div class="val" id="br-boss">—</div></div>
+    </div>
+    <div class="briefing-text" id="br-text"></div>
+    <div class="diff-row">
+      <span class="lbl">Threat</span>
+      <div class="dpip" id="dp1"></div><div class="dpip" id="dp2"></div>
+      <div class="dpip" id="dp3"></div><div class="dpip" id="dp4"></div><div class="dpip" id="dp5"></div>
+    </div>
+    <button class="btn btn-primary" onclick="startGame()">DEPLOY!</button>
+    <button class="btn btn-secondary" onclick="show('home')">← Back to Base</button>
+  </div>
+</div>
+
+<!-- GAME HUD -->
+<div id="screen-game" class="screen">
+  <div class="hud-top">
+    <div class="hud-box"><div id="hud-timer">2:00</div></div>
+    <div class="hud-box" id="hud-score"><div class="lbl">Blasted</div><div class="val" id="hud-sv">0</div></div>
+  </div>
+  <div id="hud-phase" style="color:#44ff44">PHASE 1 — SLIME SQUAD</div>
+  <div id="hud-progress"><div id="hud-prog-fill"></div></div>
+</div>
+
+<!-- RESULTS -->
+<div id="screen-results" class="screen">
+  <div class="results-inner">
+    <div class="victory-title">MISSION<br>COMPLETE ✓</div>
+    <div class="score-block">
+      <div class="big" id="res-score">0</div>
+      <div class="lbl">Germs Blasted This Mission</div>
+    </div>
+    <div class="fact-box"><div class="fact-lbl">Dental Intel</div><div id="res-fact"></div></div>
+    <div id="unlock-box" onclick="readNewChapter()">
+      <div class="unlock-label">📖 New Chapter Unlocked!</div>
+      <div class="unlock-name" id="unlock-name">—</div>
+      <div class="unlock-hint">Tap to read →</div>
+    </div>
+    <button class="btn btn-primary" onclick="show('home');refreshHome()">RETURN TO BASE</button>
+  </div>
+</div>
+
+<!-- CHAPTER -->
+<div id="screen-chapter" class="screen">
+  <div class="chapter-inner">
+    <button class="back-btn" onclick="chapterBack()">← Back</button>
+    <div class="ch-header">
+      <div class="ch-eyebrow" id="ch-eyebrow"></div>
+      <div class="ch-big-title" id="ch-title"></div>
+    </div>
+    <div class="ch-body" id="ch-body"></div>
+    <button class="back-btn" onclick="chapterBack()">← Back</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────
+//  STORY DATA
+// ─────────────────────────────────────────────
+
+const SESS = [
+  { name:"First Contact", squad:"Slime Scouts", boss:"Commander Crud", diff:1, bgHue:220,
+    brief:"The Germ Queen's advance scouts have been spotted near the Front Teeth Citadel. This is your first deployment as Brushmaster. The Kingdom's citizens are watching from their windows. Don't give them anything to worry about.",
+    fact:"Brushing for two full minutes removes up to 90% of surface bacteria." },
+  { name:"The Advancing Tide", squad:"Mold Marines", boss:"Lieutenant Plaque", diff:1, bgHue:200,
+    brief:"Lieutenant Plaque has pushed through the premolars with a fresh battalion. They tested our defenses last time and found them solid. This time they're testing harder. Prove they're right to be worried.",
+    fact:"Your toothbrush should be replaced every three to four months." },
+  { name:"Breach at the Bicuspids", squad:"Acid Squad", boss:"Sergeant Sludge", diff:2, bgHue:240,
+    brief:"Sergeant Sludge's Acid Squad has breached the bicuspid perimeter. These are faster than the scouts — and they've been fueling up on sugar all day. Watch the flanks.",
+    fact:"Fluoride helps rebuild tooth enamel that has been weakened by acid." },
+  { name:"Night Raid", squad:"Twilight Troopers", boss:"General Tartar", diff:2, bgHue:260,
+    brief:"General Tartar moves his forces after dark, hoping to catch the Kingdom off-guard. He's organized, calculating, and centuries old. Make him feel every one of those years.",
+    fact:"Plaque starts forming on teeth within twenty minutes of eating." },
+  { name:"The Sugar Surge", squad:"Sweet Regiment", boss:"Baron Bacteria", diff:2, bgHue:190,
+    brief:"Baron Bacteria's Sweet Regiment is riding a sugar rush. These germs are unusually fast and erratic — but what they gain in speed they lose in discipline. Use it against them.",
+    fact:"Sugar feeds bacteria that produce the acids which attack tooth enamel." },
+  { name:"Storm the Citadel", squad:"Corrosion Corps", boss:"Captain Cavity", diff:3, bgHue:170,
+    brief:"Captain Cavity has assembled the Corrosion Corps for a direct assault on the Front Teeth Citadel. If they breach it, the Kingdom's heart is exposed. This is not a drill.",
+    fact:"Brushing twice a day reduces your risk of cavities by more than fifty percent." },
+  { name:"The Generals Arrive", squad:"Elite Division", boss:"Brigadier Decay", diff:3, bgHue:150,
+    brief:"Brigadier Decay has taken the field personally. This is no longer a scouting mission — the Germ Queen is committing real forces now. The Order of Eternal Clean is monitoring this battle closely.",
+    fact:"Your mouth is home to over seven hundred different species of bacteria." },
+  { name:"Siege of the Molars", squad:"Heavy Brigade", boss:"Marshal Erosion", diff:3, bgHue:130,
+    brief:"Marshal Erosion's Heavy Brigade doesn't use tactics — they use volume. Wave after wave, no retreat, no hesitation. The only way to beat them is to blast them faster than they arrive.",
+    fact:"Tooth enamel is the hardest substance in the human body." },
+  { name:"Into the Deep", squad:"Deep Germ Fleet", boss:"Vice Admiral Gingivitis", diff:3, bgHue:110,
+    brief:"Vice Admiral Gingivitis commands specialists in attacking the gum line — the Kingdom's thinnest defense. You'll need to cover ground you don't usually have to watch. Don't let them find a gap.",
+    fact:"Gum disease affects nearly half of all adults. Daily brushing is the best prevention." },
+  { name:"The Dark Cathedral", squad:"Fortress Guard", boss:"Colonel Calculus", diff:4, bgHue:90,
+    brief:"You're pushing into enemy territory now. Colonel Calculus guards the outer walls of the Germ Fortress with iron discipline. You're in their world. Fight like it.",
+    fact:"Calculus — hardened plaque — can only be removed by a dentist or hygienist." },
+  { name:"Queen's Gambit", squad:"Royal Guard", boss:"General Caries II", diff:4, bgHue:70,
+    brief:"The Germ Queen has activated her Royal Guard — personal soldiers she rarely commits to the field. She is no longer underestimating you. Take that as a compliment, then show her why she was right.",
+    fact:"Streptococcus mutans is the primary bacterial species responsible for tooth decay." },
+  { name:"Last Stand at the Root", squad:"Praetorian Legion", boss:"Commander Biofilm", diff:4, bgHue:50,
+    brief:"The Praetorian Legion guards the fortress's inner walls. The Germ Queen only deploys them when she feels genuinely threatened. Good. Keep it that way.",
+    fact:"Drinking water after meals helps rinse away food particles and the acids that follow." },
+  { name:"The Throne Room", squad:"Elite Champions", boss:"Champion Erosia", diff:5, bgHue:30,
+    brief:"The Germ Queen's personal champions stand between you and the throne room. They've watched every battle you've fought and trained specifically to counter you. Time to do something they haven't seen.",
+    fact:"Acid-producing bacteria can begin weakening enamel within seconds of sugar contact." },
+  { name:"Final Offensive", squad:"The Queen's Own", boss:"High General Acidus", diff:5, bgHue:350,
+    brief:"The Germ Queen has committed her last reserves — a regiment so elite she's never had to use it before. The fortress is crumbling. They're desperate. Desperate enemies take risks. Be ready.",
+    fact:"Saliva neutralizes acids and remineralizes enamel throughout the day." },
+  { name:"The Last Stand", squad:"The Queen's Wrath", boss:"Queen Caries", diff:5, bgHue:330,
+    brief:"The Germ Queen has entered the battle personally — something she has not done in a thousand years. She is enormous, ancient, and furious. But the Bristle of Legend has been charging for fifteen missions. Use every drop of it.",
+    fact:"A healthy mouth is genuinely linked to a healthy heart. The connection is real." },
+];
+
+const CHAPTERS = [
+  { id:1, icon:"⚔️", eyebrow:"Chapter 1", title:"The Invasion Begins", unlocksAfter:1,
+    text:`The Tooth Kingdom had known peace for centuries.
+
+Nestled within the crystalline walls of thirty-two magnificent teeth, the Kingdom sparkled like a miniature civilization — tiny villages carved into enamel, rivers of minerite flowing between the molars, and at the center, the Grand Citadel of the Front Teeth, gleaming white in the warm fluoride light.
+
+Then the Sugar Caves opened.
+
+Nobody knew exactly when it happened. One morning the eastern Molar Plains were green and healthy; by evening, a dark fog rolled in from the crevices between the teeth, carrying the smell of something sour. Then came the scouts — small, slimy creatures with wide eyes and wider grins, the advance force of an army that had been gathering strength for years.
+
+The Germ Queen Caries had grown tired of waiting.
+
+You are the Brushmaster. You were summoned the moment the toothbrush was picked up — called from the Order of Eternal Clean, the legendary guardians who have defended the Tooth Kingdom since the First Brushing. You don't know it yet, but this is only the beginning.
+
+The scouts are nothing. The real army is still coming.
+
+Good luck, Brushmaster. The Kingdom is counting on you.` },
+
+  { id:2, icon:"✨", eyebrow:"Chapter 2", title:"The Ancient Toothbrush", unlocksAfter:4,
+    text:`Three battles in, and you've started to notice something strange.
+
+Your toothbrush — the one you fight with — glows differently than it should. Other Brushmasters wielded plain weapons, functional and efficient. Yours has a faint shimmer that pulses when enemies get close, like it's alive.
+
+You mention this to Elder Enamel, the ancient guardian who watches over the Kingdom between battles.
+
+"I was wondering when you'd notice," she says, and her smile is knowing.
+
+The toothbrush you carry is the Bristle of Legend — the original weapon forged during the First Brushing ten thousand years ago. It has been passed down through seventeen generations of Brushmasters, each one stronger than the last. It chooses its wielder.
+
+It chose you.
+
+There's more. The Bristle of Legend doesn't just fight — it <i>remembers</i>. Every germ it has ever defeated is stored in its bristles as pure clean energy. And that energy is growing, because Caries' armies keep coming, and you keep winning.
+
+The Germ Queen knows about the Bristle. She knows what it could do if its full power was ever unleashed.
+
+She is afraid.
+
+She shouldn't have started a war.` },
+
+  { id:3, icon:"🎖️", eyebrow:"Chapter 3", title:"The Generals of Grime", unlocksAfter:7,
+    text:`Queen Caries doesn't make the same mistake twice.
+
+After seven battles, she stops sending random soldiers. She sends her Generals.
+
+There are three of them, each commanding their own division of the Germ Army:
+
+<b>General Tartar</b> — ancient and calculating, his forces are slow but relentless. Where other germs scatter and dash, Tartar's soldiers form organized columns, marching in formation. He has never lost a siege. Until you.
+
+<b>Marshal Decay</b> — furious and unpredictable, her soldiers attack in waves, retreating and surging in patterns that seem almost random. She once stripped the enamel from an entire tooth in a single night. She has not yet met a Brushmaster like you.
+
+<b>Baron Erosion</b> — the youngest of the three, brilliant and arrogant. His specialty is finding weaknesses — tiny cracks, overlooked corners, places where the defense is thin. He studies his enemies before attacking.
+
+Right now, he is studying you.
+
+Three Generals. Three different strategies. All of them furious that their advance forces have been destroyed again and again.
+
+And somewhere behind them, watching from her fortress hidden beneath the back molars, the Germ Queen waits.
+
+She is no longer underestimating you.` },
+
+  { id:4, icon:"🏰", eyebrow:"Chapter 4", title:"The Germ Queen's Fortress", unlocksAfter:10,
+    text:`You've fought your way to the back molars.
+
+The fortress is not what you expected. You imagined something crude and organic — a pile of rotting matter, sticky with sugars, dripping acid. Instead, it is almost beautiful in a terrible way: a vast structure built from hardened plaque and crystallized decay, its towers sharp as broken teeth, its walls gleaming a sickly amber.
+
+Inside, the air hums with the energy of ten thousand germs.
+
+Elder Enamel's voice reaches you through the fluoride frequency: <i>"The fortress is built on the oldest part of the tooth — the deepest root. If Caries anchors her throne there permanently, we may never remove her. You have to disrupt the foundations."</i>
+
+The Generals try to stop you at the gate. You've fought them enough times that they're almost predictable now — Tartar's formations, Decay's waves, Erosion's probing attacks. You know their rhythms.
+
+But inside the fortress, you find something new: the Praetorian Guard. The Germ Queen's personal elite. Faster, larger, and angrier than anything you've faced before.
+
+You blast through them.
+
+Deeper. Darker. The fortress narrows around you.
+
+And then you hear it — not the screech of germs or the roar of bacteria, but a voice, low and cold and furious.
+
+<i>"So. The Brushmaster finally arrives."</i>
+
+She is exactly as terrifying as you imagined.` },
+
+  { id:5, icon:"⚡", eyebrow:"Chapter 5", title:"The Final Battle", unlocksAfter:13,
+    text:`Queen Caries is ancient.
+
+Older than the Kingdom, older than the Order of Eternal Clean, possibly older than teeth themselves. She has watched civilizations rise and fall. She has outlasted a thousand Brushmasters. She has learned to be patient.
+
+She is not patient today.
+
+<i>"Do you know how many of your kind I have destroyed?"</i> she asks, and her voice echoes off the amber walls. <i>"I have watched a hundred Brushmasters grow confident. I have watched a hundred Brushmasters make mistakes. I am still here."</i>
+
+She is enormous — three times the size of the largest enemy you've faced, her form shifting between solid and liquid, all twelve of her eyes fixed on you with cold fury.
+
+But here is what she doesn't know: the Bristle of Legend has been absorbing energy for fifteen battles. Every germ you have ever destroyed lives inside it as pure clean energy, waiting.
+
+You level the toothbrush.
+
+The bristles begin to glow.
+
+Queen Caries takes a step back. The first time, in a thousand years, that she has ever retreated.
+
+<i>"What is that?"</i> she whispers.
+
+You smile.
+
+"Every germ you ever sent against me," you tell her. "All at once."
+
+The blast is white and clean and final.` },
+
+  { id:6, icon:"🌟", eyebrow:"Epilogue", title:"A Shining Kingdom", unlocksAfter:15,
+    text:`The fortress is gone.
+
+Where the amber towers stood, there is only clean enamel, smooth and bright. The Sugar Caves have collapsed. The acid fog has cleared. Across the Tooth Kingdom, the residents emerge from their shelter to find the air fresh and the minerite rivers running clean and clear.
+
+Elder Enamel finds you sitting at the edge of the Front Teeth Citadel, watching the tiny lights come on across the kingdom as the citizens celebrate.
+
+"She'll be back," you say.
+
+"Eventually," Elder Enamel agrees. "They always come back. There will be sugar tomorrow, and the day after, and every day for as long as there are teeth. That is the nature of the battle."
+
+"That doesn't bother you?"
+
+She is quiet for a moment.
+
+"It used to," she says. "A long time ago, when I thought the goal was to win permanently. But the Brushmasters who last — who <i>really</i> last — are the ones who learn that the battle itself is the point. Every time you show up, you win a little. Every time the toothbrush is picked up, the Kingdom survives another day."
+
+She stands, smoothing her ancient robes.
+
+"The Kingdom isn't saved once, Brushmaster. It's saved <i>every morning</i>."
+
+You look out across the gleaming white landscape below.
+
+Far away, in the deep molars, a cave you hadn't noticed before catches a glimmer of light.
+
+Somewhere, a sugar molecule drifts into the dark.
+
+But you'll be back tomorrow.` },
+];
+
+// ─────────────────────────────────────────────
+//  SAVE / LOAD
+// ─────────────────────────────────────────────
+
+const KEY = 'germblaster_v1';
+function loadSave(){ try{ const r=localStorage.getItem(KEY); if(r) return JSON.parse(r); }catch(e){} return {sessions:0,totalGerms:0,bestScore:0,chaptersRead:[]}; }
+function writeSave(d){ try{ localStorage.setItem(KEY,JSON.stringify(d)); }catch(e){} }
+let SV = loadSave();
+
+// ─────────────────────────────────────────────
+//  SCREEN NAV
+// ─────────────────────────────────────────────
+
+let chBackTarget = 'home';
+let newChapterId = null;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+
+function refreshHome(){
+  SV = loadSave();
+  document.getElementById('st-sessions').textContent = SV.sessions;
+  document.getElementById('st-germs').textContent    = SV.totalGerms;
+  document.getElementById('st-best').textContent     = SV.bestScore;
+  buildChapterList();
+}
+
+function buildChapterList(){
+  const list = document.getElementById('chapter-list');
+  list.innerHTML = '';
+  CHAPTERS.forEach(ch=>{
+    const unlocked = SV.sessions >= ch.unlocksAfter;
+    const isNew    = unlocked && !SV.chaptersRead.includes(ch.id);
+    const need     = ch.unlocksAfter - SV.sessions;
+    const el = document.createElement('div');
+    el.className = 'chapter-item '+(unlocked?'unlocked':'locked');
+    let badge = unlocked
+      ? (isNew ? `<span class="ch-badge badge-new">NEW</span>` : `<span class="ch-badge badge-read">READ</span>`)
+      : `<span class="ch-badge badge-locked">${need} mission${need!==1?'s':''}</span>`;
+    el.innerHTML = `
+      <div class="ch-icon">${unlocked?ch.icon:'🔒'}</div>
+      <div class="ch-info">
+        <div class="ch-num">${ch.eyebrow}</div>
+        <div class="ch-title">${unlocked?ch.title:'???'}</div>
+      </div>${badge}`;
+    if(unlocked) el.onclick = ()=>openChapter(ch.id,'home');
+    list.appendChild(el);
+  });
+}
+
+function openChapter(id, returnTo){
+  const ch = CHAPTERS.find(c=>c.id===id);
+  if(!ch) return;
+  chBackTarget = returnTo||'home';
+  document.getElementById('ch-eyebrow').textContent = ch.eyebrow;
+  document.getElementById('ch-title').textContent   = ch.title;
+  document.getElementById('ch-body').innerHTML      = ch.text;
+  if(!SV.chaptersRead.includes(id)){ SV.chaptersRead.push(id); writeSave(SV); }
+  show('chapter');
+  document.getElementById('screen-chapter').scrollTop = 0;
+}
+
+function chapterBack(){
+  show(chBackTarget);
+  if(chBackTarget==='home') refreshHome();
+}
+
+function readNewChapter(){
+  if(newChapterId) openChapter(newChapterId,'results');
+}
+
+// ─────────────────────────────────────────────
+//  BRIEFING
+// ─────────────────────────────────────────────
+
+function getSessData(n){
+  return SESS[(n-1) % SESS.length];
+}
+
+function gotoBriefing(){
+  const n = SV.sessions+1;
+  const d = getSessData(n);
+  const cycle = Math.floor((n-1)/SESS.length);
+  document.getElementById('br-num').textContent   = `Mission #${n}${cycle>0?' (Cycle '+(cycle+1)+')':''}`;
+  document.getElementById('br-name').textContent  = d.name;
+  document.getElementById('br-squad').textContent = d.squad;
+  document.getElementById('br-boss').textContent  = d.boss;
+  document.getElementById('br-text').textContent  = d.brief;
+  const diff = Math.min(5, d.diff + Math.floor(SV.sessions/15));
+  for(let i=1;i<=5;i++) document.getElementById('dp'+i).className='dpip'+(i<=diff?' on':'');
+  show('briefing');
+}
+
+function doReset(){
+  if(confirm('Reset ALL progress? This cannot be undone.'))
+  { localStorage.removeItem(KEY); SV=loadSave(); refreshHome(); }
+}
+
+// ─────────────────────────────────────────────
+//  CANVAS / GAME
+// ─────────────────────────────────────────────
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W,H,cx,cy;
+function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; cx=W/2; cy=H/2; }
+window.addEventListener('resize',resize); resize();
+
+// Phase definitions
+const PH = [
+  { label:"SLIME SQUAD",  col:"#44ff44", lr:210,lg:255,lb:210, dr:30, dg:100,db:30,  ms:1800, sp:0.6, sc:1.0, ey:2 },
+  { label:"ACID ATTACK",  col:"#ffaa00", lr:255,lg:220,lb:150, dr:120,dg:60, db:0,   ms:1400, sp:1.0, sc:1.1, ey:2 },
+  { label:"RED ALERT",    col:"#ff3333", lr:255,lg:150,lb:150, dr:140,dg:10, db:10,  ms:1000, sp:1.5, sc:1.0, ey:3 },
+  { label:"BOSS MODE",    col:"#bb44ff", lr:230,lg:160,lb:255, dr:80, dg:0,  db:140, ms:900,  sp:1.8, sc:0.9, ey:4 },
+];
+const PCOLS = ['#44ff44','#ffaa00','#ff3333','#bb44ff'];
+
+// State
+let germs=[],bullets=[],parts=[],pops=[],stars=[];
+let score=0, timeLeft=120, phIdx=0;
+let gt=0, lastT=null, spawnAcc=0, shootAcc=0;
+let running=false, boss=null;
+let brushAngle=0, brushTarget=null;
+let flashA=0, toothShake=0, shieldT=0;
+let curSess=null, bgHue=220;
+
+function rnd(a,b){return a+Math.random()*(b-a);}
+function rgba(r,g,b,a){return `rgba(${r},${g},${b},${a})`;}
+
+function diffMult(){
+  const s=SV.sessions;
+  if(s<5)  return {sp:1.0, ms:1.0, bHp:20};
+  if(s<10) return {sp:1.15,ms:0.85,bHp:25};
+  if(s<15) return {sp:1.3, ms:0.75,bHp:30};
+  return    {sp:1.4+Math.floor(s/15)*0.05, ms:0.7, bHp:35};
+}
+
+// ── Stars ────────────────────────────────────
+function initStars(){
+  stars = Array.from({length:90},()=>({
+    x:Math.random()*W, y:Math.random()*H,
+    r:Math.random()*1.4+0.3,
+    tw:Math.random()*Math.PI*2,
+    sp:Math.random()*0.4+0.06,
+  }));
+}
+
+// ── Background ───────────────────────────────
+function drawBG(){
+  const h=bgHue;
+  const g=ctx.createRadialGradient(cx,cy*0.65,0,cx,cy,Math.hypot(W,H)*0.72);
+  g.addColorStop(0,`hsl(${h},28%,8%)`); g.addColorStop(1,`hsl(${h},18%,4%)`);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=`hsla(${h},80%,60%,0.04)`; ctx.lineWidth=1;
+  const gs=56;
+  for(let x=cx%gs;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=cy%gs;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  stars.forEach(s=>{
+    s.tw+=s.sp*0.05;
+    const b=0.35+0.65*Math.abs(Math.sin(s.tw));
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(210,225,255,${b})`; ctx.fill();
+  });
+}
+
+// ── Round rect helper ────────────────────────
+function rrPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+// ── Tooth ────────────────────────────────────
+function drawTooth(){
+  const base=Math.min(W,H)*0.12;
+  ctx.save(); ctx.translate(cx+toothShake*0.8,cy); toothShake*=0.74;
+  shieldT+=0.035;
+  const sr=base*1.4+Math.sin(shieldT)*4;
+  const sg=ctx.createRadialGradient(0,0,sr*0.5,0,0,sr+28);
+  sg.addColorStop(0,'rgba(0,255,200,0)');
+  sg.addColorStop(0.6,`rgba(0,255,200,${0.04+0.02*Math.sin(shieldT)})`);
+  sg.addColorStop(1,'rgba(0,255,200,0)');
+  ctx.beginPath(); ctx.arc(0,0,sr+28,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+
+  const tw=base*0.75, th=base*1.1;
+  // Gum
+  ctx.beginPath(); ctx.ellipse(0,th*0.55,tw*0.85,th*0.55,0,0,Math.PI*2);
+  const gmg=ctx.createRadialGradient(0,th*0.4,0,0,th*0.55,th*0.55);
+  gmg.addColorStop(0,'#ffaabb'); gmg.addColorStop(1,'#cc6677');
+  ctx.fillStyle=gmg; ctx.fill();
+
+  const clean=(120-timeLeft)/120;
+  const ri=Math.round(195+60*clean), gi=Math.round(188+67*clean), bi=Math.round(178+77*clean);
+  const tg=ctx.createLinearGradient(-tw,-th,tw*0.5,th*0.3);
+  tg.addColorStop(0,`rgb(${Math.min(255,ri+20)},${Math.min(255,gi+20)},${Math.min(255,bi+20)})`);
+  tg.addColorStop(0.6,`rgb(${ri},${gi},${bi})`);
+  tg.addColorStop(1,`rgb(${ri-15},${gi-15},${bi-15})`);
+  ctx.save(); rrPath(-tw,-th,tw*2,th*1.7,tw*0.35); ctx.clip();
+  ctx.fillStyle=tg; ctx.fill(); ctx.restore();
+  rrPath(-tw,-th,tw*2,th*1.7,tw*0.35);
+  ctx.strokeStyle=`rgba(0,255,200,${0.18+0.28*clean})`; ctx.lineWidth=2; ctx.stroke();
+
+  if(clean>0.6){
+    [[-tw*0.3,-th*0.7],[tw*0.4,-th*0.5],[0,-th*0.9]].forEach(([sx,sy],i)=>{
+      const a=Math.abs(Math.sin(gt*2.2+i*1.7));
+      if(a>0.5) drawSparkle(sx,sy,10*a,'#ffffcc');
+    });
+  }
+  ctx.restore();
+}
+
+function drawSparkle(x,y,sz,col){
+  ctx.save(); ctx.translate(x,y); ctx.strokeStyle=col; ctx.lineWidth=2;
+  ctx.shadowColor=col; ctx.shadowBlur=8;
+  for(let i=0;i<4;i++){ ctx.rotate(Math.PI/4); ctx.beginPath(); ctx.moveTo(0,-sz); ctx.lineTo(0,sz); ctx.stroke(); }
+  ctx.restore();
+}
+
+// ── Germ spawning ────────────────────────────
+function spawnGerm(){
+  const p=PH[phIdx], dm=diffMult(), sc=Math.min(W,H)/400;
+  const side=Math.floor(Math.random()*4); const pad=42;
+  let x,y;
+  if(side===0){x=rnd(pad,W-pad);y=-pad;}
+  else if(side===1){x=W+pad;y=rnd(pad,H-pad);}
+  else if(side===2){x=rnd(pad,W-pad);y=H+pad;}
+  else{x=-pad;y=rnd(pad,H-pad);}
+  germs.push({x,y,vx:0,vy:0,
+    r:p.sc*sc*(18+Math.random()*10),
+    speed:p.sp*dm.sp*sc*(0.7+Math.random()*0.6),
+    lr:p.lr,lg:p.lg,lb:p.lb,dr:p.dr,dg:p.dg,db:p.db,col:p.col,
+    wob:Math.random()*Math.PI*2, ey:p.ey, ph:phIdx, isBoss:false});
+}
+
+function spawnBoss(){
+  const dm=diffMult(), sc=Math.min(W,H)/400;
+  boss={x:W+110,y:cy,vx:0,vy:0,
+    r:Math.min(W,H)*0.1,
+    speed:0.9*dm.sp*sc,
+    lr:255,lg:100,lb:255,dr:100,dg:0,db:150,col:'#ff44ff',
+    wob:0,ey:4,ph:3,isBoss:true,
+    hp:dm.bHp,maxHp:dm.bHp,
+    name:(curSess?curSess.boss:'BOSS').toUpperCase()};
+}
+
+// ── Draw germ ────────────────────────────────
+function drawGerm(g){
+  ctx.save(); ctx.translate(g.x,g.y);
+  const w=g.wob+gt*3;
+  ctx.beginPath();
+  for(let i=0;i<=12;i++){
+    const a=(i/12)*Math.PI*2;
+    const wr=g.r*(1+0.22*Math.sin(w+a*3));
+    const px=Math.cos(a)*wr, py=Math.sin(a)*wr;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  const gr=ctx.createRadialGradient(-g.r*0.25,-g.r*0.25,0,0,0,g.r*1.1);
+  gr.addColorStop(0,rgba(g.lr,g.lg,g.lb,1)); gr.addColorStop(1,rgba(g.dr,g.dg,g.db,1));
+  ctx.fillStyle=gr; ctx.shadowColor=g.col; ctx.shadowBlur=12; ctx.fill();
+  ctx.shadowBlur=0; ctx.strokeStyle=g.col; ctx.lineWidth=1.5; ctx.stroke();
+
+  // Eyes
+  eyePos(g.ey,g.r*0.5).forEach(([ex,ey2])=>{
+    ctx.beginPath(); ctx.arc(ex,ey2,g.r*0.2,0,Math.PI*2); ctx.fillStyle='white'; ctx.fill();
+    const dx=cx-g.x, dy=cy-g.y, dl=Math.hypot(dx,dy)||1;
+    ctx.beginPath(); ctx.arc(ex+dx/dl*g.r*0.07,ey2+dy/dl*g.r*0.07,g.r*0.1,0,Math.PI*2);
+    ctx.fillStyle='#000'; ctx.fill();
+    if(g.ph>=2){
+      ctx.beginPath();
+      ctx.moveTo(ex-g.r*0.22,ey2-g.r*0.25);
+      ctx.lineTo(ex+g.r*0.22,ey2-g.r*(0.25+(ex<0?0.08:-0.08)));
+      ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.lineWidth=2.5; ctx.stroke();
+    }
+  });
+
+  // Grin + teeth
+  ctx.beginPath(); ctx.arc(0,g.r*0.3,g.r*0.38,0.15,Math.PI-0.15);
+  ctx.strokeStyle='rgba(0,0,0,0.7)'; ctx.lineWidth=2; ctx.stroke();
+  for(let i=0;i<3;i++){
+    const ta=0.15+(Math.PI-0.3)*(i/2);
+    const tx=Math.cos(ta)*g.r*0.38, ty=g.r*0.3+Math.sin(ta)*g.r*0.38;
+    ctx.fillStyle='white'; ctx.fillRect(tx-g.r*0.065,ty,g.r*0.13,g.r*0.13);
+  }
+
+  // Boss extras
+  if(g.isBoss){
+    // Crown
+    ctx.fillStyle='#ffdd00'; ctx.shadowColor='#ffdd00'; ctx.shadowBlur=8;
+    const cr=g.r*0.9, cy2=-g.r*1.12;
+    ctx.beginPath();
+    ctx.moveTo(-cr,cy2+g.r*0.32); ctx.lineTo(-cr,cy2);
+    ctx.lineTo(-cr*0.5,cy2+g.r*0.38); ctx.lineTo(0,cy2-g.r*0.08);
+    ctx.lineTo(cr*0.5,cy2+g.r*0.38); ctx.lineTo(cr,cy2);
+    ctx.lineTo(cr,cy2+g.r*0.32); ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+    // HP bar
+    const bw=g.r*2.6, bh=9, bx2=-bw/2, by2=-g.r-38;
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx2,by2,bw,bh);
+    const f=g.hp/g.maxHp;
+    ctx.fillStyle=f>0.5?'#00ff88':f>0.25?'#ffdd00':'#ff3333';
+    ctx.fillRect(bx2,by2,bw*f,bh);
+    ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.strokeRect(bx2,by2,bw,bh);
+    ctx.fillStyle='#ff44ff'; ctx.font=`bold ${Math.round(g.r*0.28)}px Courier New`;
+    ctx.textAlign='center'; ctx.fillText(g.name,0,by2-9);
+  }
+  ctx.restore();
+}
+
+function eyePos(n,d){
+  if(n===2) return [[-d*0.5,-d*0.2],[d*0.5,-d*0.2]];
+  if(n===3) return [[-d*0.62,0],[0,-d*0.55],[d*0.62,0]];
+  return [[-d*0.5,-d*0.3],[d*0.5,-d*0.3],[-d*0.4,d*0.2],[d*0.4,d*0.2]];
+}
+
+// ── Toothbrush ───────────────────────────────
+function drawBrush(){
+  const all=[...germs,...(boss?[boss]:[])];
+  brushTarget=null; let nd=Infinity;
+  all.forEach(g=>{ const d=Math.hypot(g.x-cx,g.y-cy); if(d<nd){nd=d;brushTarget=g;} });
+
+  const orb=Math.min(W,H)*0.19;
+  if(brushTarget){ let diff=Math.atan2(brushTarget.y-cy,brushTarget.x-cx)-brushAngle;
+    while(diff>Math.PI)diff-=Math.PI*2; while(diff<-Math.PI)diff+=Math.PI*2; brushAngle+=diff*0.12; }
+  else brushAngle+=0.025;
+
+  const bx=cx+Math.cos(brushAngle)*orb, by=cy+Math.sin(brushAngle)*orb;
+  ctx.save(); ctx.translate(bx,by); ctx.rotate(brushAngle+Math.PI/2);
+  const s=Math.min(W,H)*0.042;
+
+  rrPath(-s*0.3,s*0.1,s*0.6,s*2.4,s*0.15);
+  const hg=ctx.createLinearGradient(-s*0.3,0,s*0.3,0);
+  hg.addColorStop(0,'#ff69b4'); hg.addColorStop(0.5,'#ffaacc'); hg.addColorStop(1,'#cc3388');
+  ctx.fillStyle=hg; ctx.fill(); ctx.strokeStyle='#ff88bb'; ctx.lineWidth=1.5; ctx.stroke();
+
+  rrPath(-s*0.42,-s*0.85,s*0.84,s*0.9,s*0.1);
+  const hd=ctx.createLinearGradient(-s*0.42,-s*0.85,s*0.42,0);
+  hd.addColorStop(0,'#cceeff'); hd.addColorStop(1,'#0077cc');
+  ctx.fillStyle=hd; ctx.fill(); ctx.strokeStyle='#44aaff'; ctx.lineWidth=1.5; ctx.stroke();
+
+  ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=2;
+  for(let i=0;i<6;i++){ const bx2=-s*0.35+i*s*0.14; ctx.beginPath(); ctx.moveTo(bx2,-s*0.82); ctx.lineTo(bx2,-s*1.28); ctx.stroke(); }
+
+  if(shootAcc<0.15){
+    ctx.shadowColor='#00ffff'; ctx.shadowBlur=24;
+    ctx.fillStyle='rgba(0,255,255,0.14)';
+    ctx.beginPath(); ctx.arc(0,-s*0.42,s*0.68,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  }
+  ctx.restore();
+  return {x:bx,y:by};
+}
+
+// ── Bullets ──────────────────────────────────
+function fireBullet(bx,by){
+  if(!brushTarget) return;
+  const dx=brushTarget.x-bx, dy=brushTarget.y-by, d=Math.hypot(dx,dy)||1, sp=9;
+  bullets.push({x:bx,y:by,vx:dx/d*sp,vy:dy/d*sp,life:Math.ceil(d/sp)+8});
+}
+
+function updateBullets(){
+  bullets=bullets.filter(b=>{
+    b.x+=b.vx; b.y+=b.vy; b.life--;
+    parts.push({x:b.x+rnd(-2,2),y:b.y+rnd(-2,2),vx:rnd(-0.4,0.4),vy:rnd(-0.4,0.4),r:rnd(2,5),life:12,ml:12,r2:0,g2:255,b2:200});
+    const bg=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,5);
+    bg.addColorStop(0,'#ffffff'); bg.addColorStop(1,'#00ffcc');
+    ctx.beginPath(); ctx.arc(b.x,b.y,5,0,Math.PI*2);
+    ctx.fillStyle=bg; ctx.shadowColor='#00ffff'; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+    const all=[...germs,...(boss?[boss]:[])];
+    for(const g of all){
+      if(Math.hypot(b.x-g.x,b.y-g.y)<g.r+5){
+        if(g.isBoss){
+          g.hp--; burst(g.x,g.y,'#ff44ff',8);
+          if(g.hp<=0){ burst(g.x,g.y,'#ff44ff',35); boss=null; score+=10; popup(g.x,g.y-g.r-20,'+10  BOSS!','#ff44ff',1.6); hudScore(); }
+        } else {
+          germs=germs.filter(gg=>gg!==g); score++; burst(g.x,g.y,g.col,10); popup(g.x,g.y,'ZAP!',g.col,1); hudScore();
+        }
+        return false;
+      }
+    }
+    return b.life>0;
+  });
+}
+
+// ── Particles ────────────────────────────────
+function burst(x,y,col,n){
+  const hex=col.replace('#','');
+  const r2=parseInt(hex.slice(0,2),16)||200, g2=parseInt(hex.slice(2,4),16)||200, b2=parseInt(hex.slice(4,6),16)||200;
+  for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=rnd(1.5,5.5);
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:rnd(3,9),life:rnd(20,35),ml:35,r2,g2,b2}); }
+}
+
+function updateParts(){
+  parts=parts.filter(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.04; p.life--;
+    const a=p.life/p.ml;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r*a,0,Math.PI*2);
+    ctx.fillStyle=rgba(p.r2,p.g2,p.b2,a);
+    ctx.shadowColor=rgba(p.r2,p.g2,p.b2,0.5); ctx.shadowBlur=4; ctx.fill(); ctx.shadowBlur=0;
+    return p.life>0;
+  });
+}
+
+// ── Popups ───────────────────────────────────
+function popup(x,y,txt,col,sc){ pops.push({x,y,txt,col,sc:sc||1,life:45,ml:45}); }
+
+function updatePops(){
+  pops=pops.filter(p=>{
+    p.y-=1.3; p.life--;
+    const a=p.life/p.ml, fs=Math.round((14+(1-a)*8)*p.sc);
+    ctx.save(); ctx.globalAlpha=a;
+    ctx.font=`bold ${fs}px Courier New`; ctx.textAlign='center';
+    ctx.fillStyle=p.col; ctx.shadowColor=p.col; ctx.shadowBlur=10;
+    ctx.fillText(p.txt,p.x,p.y); ctx.restore();
+    return p.life>0;
+  });
+}
+
+// ── HUD ──────────────────────────────────────
+function hudScore(){ document.getElementById('hud-sv').textContent=score; }
+function fmtTime(s){ const m=Math.floor(s/60),ss=Math.floor(s%60); return `${m}:${ss.toString().padStart(2,'0')}`; }
+
+function setPhase(p){
+  phIdx=p; flashA=1;
+  const ph=PH[p], hud=document.getElementById('hud-phase');
+  hud.textContent=`PHASE ${p+1} — ${ph.label}`; hud.style.color=PCOLS[p];
+  popup(cx,cy-60,`⚠ PHASE ${p+1}: ${ph.label}`,PCOLS[p],1.3);
+  if(navigator.vibrate) navigator.vibrate([100,50,100]);
+  if(p===3) setTimeout(spawnBoss,3500);
+}
+
+// ── Game loop ────────────────────────────────
+function gameLoop(ts){
+  if(!running) return;
+  const dt=lastT?Math.min((ts-lastT)/1000,0.05):0.016; lastT=ts; gt+=dt;
+  timeLeft=Math.max(0,timeLeft-dt);
+  document.getElementById('hud-timer').textContent=fmtTime(timeLeft);
+  document.getElementById('hud-prog-fill').style.width=((120-timeLeft)/120*100)+'%';
+
+  const ep=timeLeft>90?0:timeLeft>60?1:timeLeft>30?2:3;
+  if(ep>phIdx) setPhase(ep);
+
+  const dm=diffMult(), ms=PH[phIdx].ms*dm.ms;
+  spawnAcc+=dt*1000; if(spawnAcc>=ms){spawnAcc-=ms;spawnGerm();}
+
+  const tr=Math.min(W,H)*0.14;
+  [...germs,...(boss?[boss]:[])].forEach(g=>{
+    const dx=cx-g.x, dy=cy-g.y, d=Math.hypot(dx,dy)||1;
+    g.vx+=(dx/d)*g.speed*0.18; g.vy+=(dy/d)*g.speed*0.18;
+    g.vx*=0.94; g.vy*=0.94; g.x+=g.vx; g.y+=g.vy;
+    if(d<tr+g.r*0.6){
+      g.x-=(dx/d)*4; g.y-=(dy/d)*4; toothShake=rnd(-6,6);
+      if(!g.isBoss){germs=germs.filter(gg=>gg!==g);burst(g.x,g.y,'#ffffff',5);}
+    }
+  });
+
+  ctx.clearRect(0,0,W,H);
+  drawBG(); updateParts(); drawTooth();
+  germs.forEach(drawGerm); if(boss) drawGerm(boss);
+  const bp=drawBrush(); updateBullets(); updatePops();
+
+  shootAcc+=dt;
+  if(shootAcc>=0.28&&brushTarget){shootAcc=0;fireBullet(bp.x,bp.y);}
+
+  if(flashA>0){ ctx.fillStyle=`rgba(255,255,255,${flashA*0.22})`; ctx.fillRect(0,0,W,H); flashA-=0.04; }
+  if(timeLeft<=0){endGame();return;}
+  requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+  curSess=getSessData(SV.sessions+1); bgHue=curSess.bgHue;
+  germs=[];bullets=[];parts=[];pops=[];
+  score=0;timeLeft=120;phIdx=0;gt=0;lastT=null;spawnAcc=0;shootAcc=0;
+  flashA=0;toothShake=0;shieldT=0;boss=null;brushAngle=0;brushTarget=null;
+  initStars();
+  document.getElementById('hud-sv').textContent='0';
+  document.getElementById('hud-timer').textContent='2:00';
+  document.getElementById('hud-prog-fill').style.width='0%';
+  document.getElementById('hud-phase').textContent='PHASE 1 — SLIME SQUAD';
+  document.getElementById('hud-phase').style.color='#44ff44';
+  show('game'); running=true;
+  if('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+  requestAnimationFrame(gameLoop);
+}
+
+function endGame(){
+  running=false;
+  [0,220,440,660,880].forEach(d=>setTimeout(()=>{
+    burst(rnd(W*0.2,W*0.8),rnd(H*0.2,H*0.8),['#00ffcc','#ffdd00','#ff6600','#ff44ff'][Math.floor(Math.random()*4)],18);
+  },d));
+  if(navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
+  SV.sessions++; SV.totalGerms+=score; if(score>SV.bestScore)SV.bestScore=score; writeSave(SV);
+  newChapterId=null;
+  for(const ch of CHAPTERS){ if(SV.sessions===ch.unlocksAfter){newChapterId=ch.id;break;} }
+  document.getElementById('res-score').textContent=score;
+  document.getElementById('res-fact').textContent=curSess.fact;
+  const ub=document.getElementById('unlock-box');
+  if(newChapterId){
+    const ch=CHAPTERS.find(c=>c.id===newChapterId);
+    document.getElementById('unlock-name').textContent=ch.title;
+    ub.classList.add('show');
+  } else ub.classList.remove('show');
+  setTimeout(()=>show('results'),700);
+}
+
+// ── Idle animation ───────────────────────────
+function idleLoop(ts){
+  if(running) return;
+  gt=ts/1000;
+  ctx.clearRect(0,0,W,H); drawBG(); drawTooth(); updateParts();
+  requestAnimationFrame(idleLoop);
+}
+
+// ── Boot ─────────────────────────────────────
+initStars(); timeLeft=0; // show clean tooth on home screen
+refreshHome(); show('home');
+requestAnimationFrame(idleLoop);
+</script>
+</body>
+</html>
